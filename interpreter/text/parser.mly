@@ -216,7 +216,7 @@ string_list :
 ref_type :
   | ANYREF { AnyRefType }
   | FUNCREF { FuncRefType }
-  | EXNREF { assert false (* TODO FIXME. *) }
+  | EXNREF { ExnRefType }
 
 value_type :
   | NUM_TYPE { NumType $1 }
