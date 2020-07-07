@@ -537,10 +537,13 @@ try_block_result_body :
       FuncType (ins, $3 @ out), snd $5 }
 
 try_ :
- | LPAR THEN instr_list RPAR LPAR CATCH instr_list RPAR
+ | LPAR CATCH instr_list RPAR
    { fun c ->
-     let es1, es2 = $3 c, $7 c in
-     (es1, es2) }
+     ([], $3 c) }
+ | instr try_
+   { fun c ->
+     let es1, es2 = fst ($2 c), snd ($2 c) in
+     ($1 c @ es1, es2) }
 
 if_block :
   | type_use if_block_param_body
