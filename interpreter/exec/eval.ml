@@ -183,6 +183,9 @@ let rec step (c : config) : config =
       | BrTable (xs, x), Num (I32 i) :: vs' ->
         vs', [Plain (Br (Lib.List32.nth xs i)) @@ e.at]
 
+      | BrOnExn (l, x), Ref NullRef :: vs' ->
+        vs', [Trapping "cannot use null exnref" @@ e.at]
+
       | BrOnExn (l, x), Ref (ExnRef (exn, vs0)) :: vs' when exn == exception_ frame.inst x ->
         vs0, [Plain (Br l) @@ e.at]
 
@@ -321,6 +324,9 @@ let rec step (c : config) : config =
         let n = Lib.List32.length ts in
         let args, vs' = take n vs e.at, drop n vs e.at in
         vs', [Throwing (exn, List.rev args) @@ e.at]
+
+      | Rethrow, Ref NullRef :: vs ->
+        vs, [Trapping "cannot use null exnref" @@ e.at]
 
       | Rethrow, Ref (ExnRef ep) :: vs ->
         vs, [Throwing ep @@ e.at]
