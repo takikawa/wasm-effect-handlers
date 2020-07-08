@@ -323,7 +323,7 @@ let rec step (c : config) : config =
         let ExceptionType (ts, _) = Exception.type_of exn in
         let n = Lib.List32.length ts in
         let args, vs' = take n vs e.at, drop n vs e.at in
-        vs', [Throwing (exn, List.rev args) @@ e.at]
+        vs', [Throwing (exn, args) @@ e.at]
 
       | Rethrow, Ref NullRef :: vs ->
         vs, [Trapping "cannot use null exnref" @@ e.at]
