@@ -1,9 +1,13 @@
 ;; Test `try` and `catch` forms
 
 (module
-  (exception $exn)
-  (exception $exn-i32 (param i32))
-  (exception $exn-i32-i32 (param i32 i32))
+  (type (func))
+  (type (func (param i32)))
+  (type (func (param i32 i32)))
+
+  (exception (type 0))
+  (exception $exn-i32 (type 1))
+  (exception $exn-i32-i32 (type 2))
 
   (func $throw-i32 (param i32) (result i32)
     (throw 1 (local.get 0)))
