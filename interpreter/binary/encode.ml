@@ -378,10 +378,12 @@ let encode m =
       | RefIsNull -> op 0xd1
       | RefFunc x -> op 0xd2; var x
 
-      | Try _ -> assert false (* TODO FIXME. *)
-      | Throw _ -> assert false (* TODO FIXME. *)
-      | Rethrow -> assert false (* TODO FIXME. *)
-      | BrOnExn _ -> assert false (* TODO FIXME. *)
+      | Try (bt, es1, es2) ->
+        op 0x06; block_type bt; list instr es1;
+        op 0x07; list instr es2; end_ ()
+      | Throw x -> op 0x08; var x
+      | Rethrow -> op 0x09
+      | BrOnExn (l, x) -> op 0x0a; var l; var x
 
     let const c =
       list instr c.it; end_ ()
