@@ -1,7 +1,8 @@
 ;; Test `rethrow` operator
 
 (module
-  (exception $exn)
+  (type (func))
+  (exception $exn (type 0))
 
   (func (export "basic-rethrow") (result i32)
     (try (result i32)

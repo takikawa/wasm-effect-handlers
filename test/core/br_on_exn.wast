@@ -1,9 +1,12 @@
 ;; Test `br_on_exn` operator
 
 (module
-  (exception $exn-i32 (param i32))
-  (exception $exn-i32-2 (param i32))
-  (exception $exn-all (param i32 i64 f32 f64))
+  (type (func (param i32)))
+  (type (func (param i32 i64 f32 f64)))
+
+  (exception $exn-i32 (type 0))
+  (exception $exn-i32-2 (type 0))
+  (exception $exn-all (type 1))
 
   (func (export "br-on-exn-i32") (result i32)
     (try (result i32)
@@ -94,12 +97,11 @@
   )
 
   (func (export "null-exnref") (result i32) (local exnref)
-    block $l (result i32)
+    (block $l (result i32)
       (local.get 0)
       (br_on_exn $l 0)
       drop
-      (i32.const 1)
-    end
+      (i32.const 1))
   )
 )
 
