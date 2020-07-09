@@ -1,8 +1,11 @@
 ;; Test `exception` declarations.
 
 (module
-  (exception (result))
-  (exception $1 (param i32) (param i64) (result))
-  (exception (export "Not_found") (result))
+  (type (func))
+  (type (func (param i32) (param i64) (result)))
+
+  (exception (type 0))
+  (exception $1 (type 1))
+  (exception (export "Not_found") (type 0))
   (export "fail" (exception 0))
 )

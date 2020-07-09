@@ -473,7 +473,7 @@ let encode m =
       | TableExport x -> u8 1; var x
       | MemoryExport x -> u8 2; var x
       | GlobalExport x -> u8 3; var x
-      | ExceptionExport x -> assert false (* TODO FIXME. *)
+      | ExceptionExport x -> u8 4; var x
 
     let export ex =
       let {name = n; edesc} = ex.it in

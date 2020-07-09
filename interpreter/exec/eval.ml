@@ -469,7 +469,7 @@ let create_global (inst : module_inst) (glob : global) : global_inst =
 
 let create_exception (inst : module_inst) (exn : exception_) : exception_inst =
   let {xtype; _} = exn.it in
-  Exception.alloc xtype (* TODO FIXME. *)
+  Exception.alloc xtype
 
 let create_export (inst : module_inst) (ex : export) : export_inst =
   let {name; edesc} = ex.it in
@@ -479,7 +479,7 @@ let create_export (inst : module_inst) (ex : export) : export_inst =
     | TableExport x -> ExternTable (table inst x)
     | MemoryExport x -> ExternMemory (memory inst x)
     | GlobalExport x -> ExternGlobal (global inst x)
-    | ExceptionExport x -> assert false (* TODO FIXME. *)
+    | ExceptionExport x -> ExternException (exception_ inst x)
   in name, ext
 
 
