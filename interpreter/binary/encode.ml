@@ -89,6 +89,7 @@ let encode m =
 
     (* Types *)
 
+    open Source
     open Types
 
     let num_type = function
@@ -128,9 +129,14 @@ let encode m =
     let global_type = function
       | GlobalType (t, mut) -> value_type t; mutability mut
 
+    let exception_attribute =
+      vu32 (Int32.of_int 0)
+
+    let exception_type x =
+      exception_attribute; vu32 x.it
+
     (* Expressions *)
 
-    open Source
     open Ast
     open Values
     open Memory
@@ -412,7 +418,8 @@ let encode m =
       | TableImport t -> u8 0x01; table_type t
       | MemoryImport t -> u8 0x02; memory_type t
       | GlobalImport t -> u8 0x03; global_type t
-      | ExceptionImport t -> assert false (* TODO FIXME. *)
+      | ExceptionImport (x, t) ->
+        u8 0x04; exception_attribute; var x
 
     let import im =
       let {module_name; item_name; idesc} = im.it in
@@ -442,6 +449,14 @@ let encode m =
 
     let memory_section mems =
       section 5 (vec memory) mems (mems <> [])
+
+    (* Event section *)
+    let exception_ exn =
+      let {xtypevar = evar; _} = exn.it in
+      exception_type evar
+
+    let event_section exns =
+      section 13 (vec exception_) exns (exns <> [])
 
     (* Global section *)
     let global g =
@@ -520,6 +535,7 @@ let encode m =
       func_section m.it.funcs;
       table_section m.it.tables;
       memory_section m.it.memories;
+      event_section m.it.exceptions;
       global_section m.it.globals;
       export_section m.it.exports;
       start_section m.it.start;

@@ -160,7 +160,8 @@ type exception_ = exception_' Source.phrase
 and exception_' =
 {
   xvar : var;
-  xtype : exception_type
+  xtype : exception_type;
+  xtypevar : var;
 }
 
 (* Modules *)
@@ -188,7 +189,7 @@ and import_desc' =
   | TableImport of table_type
   | MemoryImport of memory_type
   | GlobalImport of global_type
-  | ExceptionImport of exception_type
+  | ExceptionImport of var * exception_type
 
 type import = import' Source.phrase
 and import' =
@@ -247,7 +248,7 @@ let import_type (m : module_) (im : import) : extern_type =
   | TableImport t -> ExternTableType t
   | MemoryImport t -> ExternMemoryType t
   | GlobalImport t -> ExternGlobalType t
-  | ExceptionImport t -> ExternExceptionType t
+  | ExceptionImport (x, t) -> ExternExceptionType t
 
 let export_type (m : module_) (ex : export) : extern_type =
   let {edesc; _} = ex.it in

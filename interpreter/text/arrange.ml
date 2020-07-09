@@ -73,9 +73,6 @@ let global_type = function
   | GlobalType (t, Immutable) -> atom string_of_value_type t
   | GlobalType (t, Mutable) -> Node ("mut", [atom string_of_value_type t])
 
-let exception_type (ExceptionType (ins, out)) =
-  Node ("exception", decls "param" ins @ decls "result" out)
-
 
 (* Operators *)
 
