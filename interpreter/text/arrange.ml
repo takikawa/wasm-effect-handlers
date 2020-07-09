@@ -326,7 +326,8 @@ let import_desc i d =
   | TableImport t -> table 0 i ({ttype = t} @@ d.at)
   | MemoryImport t -> memory 0 i ({mtype = t} @@ d.at)
   | GlobalImport t -> Node ("global $" ^ nat i, [global_type t])
-  | ExceptionImport t -> Node ("exception $" ^ nat i, [exception_type t])
+  | ExceptionImport (x, _) -> Node ("exception $" ^ nat i,
+                                    [Node ("type", [atom var x])])
 
 let import i im =
   let {module_name; item_name; idesc} = im.it in

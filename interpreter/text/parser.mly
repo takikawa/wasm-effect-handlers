@@ -234,16 +234,10 @@ def_type :
   | LPAR FUNC func_type RPAR { $3 }
 
 exception_type :
-  | /* empty */
-    { ExceptionType ([], []) }
-  | LPAR RESULT value_type_list RPAR exception_type
-    { let ExceptionType (ins, out) = $5 in
-      if ins <> [] then error (at ()) "result before parameter";
-      ExceptionType (ins, $3 @ out) }
-  | LPAR PARAM value_type_list RPAR exception_type
-    { let ExceptionType (ins, out) = $5 in ExceptionType ($3 @ ins, out) }
-  | LPAR PARAM bind_var value_type RPAR exception_type  /* Sugar */
-    { let ExceptionType (ins, out) = $6 in ExceptionType ($4 :: ins, out) }
+  | type_use
+    { fun c -> let var = $1 c type_ in
+               let FuncType (ins, out) = func_type c var in
+               (var, ExceptionType (ins, out)) }
 
 func_type :
   | /* empty */
@@ -759,11 +753,14 @@ exception_ :
 
 exception_fields :
   | exception_type
-    { fun c x at -> [{xvar = x; xtype = $1} @@ at], [], [] }
+    { fun c x at ->
+      let (var, exn_type) = $1 c in
+      [{xvar = x; xtype = exn_type; xtypevar = var } @@ at], [], [] }
   | inline_import exception_type  /* Sugar */
     { fun c x at ->
+      let (var, exn_type) = $2 c in
       [], [{ module_name = fst $1; item_name = snd $1;
-             idesc = ExceptionImport $2 @@ at } @@ at], [] }
+             idesc = ExceptionImport (var, exn_type) @@ at } @@ at], [] }
   | inline_export exception_fields  /* Sugar */
     { fun c x at -> let exns, ims, exs = $2 c x at in
       exns, ims, $1 (ExceptionExport x) c :: exs }
@@ -789,7 +786,8 @@ import_desc :
       fun () -> GlobalImport $4 }
   | LPAR EXCEPTION bind_var_opt exception_type RPAR
     { fun c -> ignore ($3 c anon_exception bind_exception);
-      fun () -> ExceptionImport $4 }
+      fun () -> let (var, exn_type) = $4 c in
+                ExceptionImport (var, exn_type) }
 
 import :
   | LPAR IMPORT name name import_desc RPAR

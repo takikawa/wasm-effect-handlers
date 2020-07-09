@@ -507,7 +507,7 @@ let check_global (c : context) (glob : global) =
   check_const c value t
 
 let check_exception (c : context) (exn : exception_) =
-  let {xtype; xvar} = exn.it in
+  let {xtype; xvar; _} = exn.it in
   ignore (exception_ c xvar);
   check_exception_type xtype exn.at
 
@@ -533,7 +533,7 @@ let check_import (im : import) (c : context) : context =
   | GlobalImport gt ->
     check_global_type gt idesc.at;
     {c with globals = gt :: c.globals}
-  | ExceptionImport et ->
+  | ExceptionImport (x, et) ->
     check_exception_type et idesc.at;
     {c with exceptions = et :: c.exceptions}
 
