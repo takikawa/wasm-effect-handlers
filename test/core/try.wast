@@ -17,13 +17,13 @@
     (call $call-throw-i32 (local.get 0)))
 
   (func (export "empty-try-catch") (result i32)
-    (try nop (catch drop))
+    (try (do nop) (catch drop))
     (i32.const 0)
   )
 
   (func (export "try-no-throw") (result i32)
     (try (result i32)
-      (i32.const 0)
+      (do (i32.const 0))
       (catch
         drop
         (i32.const 1)))
@@ -31,7 +31,7 @@
 
   (func (export "no-catch-effect") (result i32) (local i32)
     (try
-      (local.set 0 (i32.const 42))
+      (do (local.set 0 (i32.const 42)))
       (catch
         drop
         (local.set 0 (i32.const 99))))
@@ -40,7 +40,7 @@
 
   (func (export "throw-simple") (result i32)
     (try (result i32)
-      (throw 1 (i32.const 42))
+      (do (throw 1 (i32.const 42)))
       (catch
         drop
         (i32.const 1)))
@@ -48,7 +48,7 @@
 
   (func (export "throw-call") (result i32)
     (try (result i32)
-      (call $throw-i32 (i32.const 42))
+      (do (call $throw-i32 (i32.const 42)))
       (catch
         drop
         (i32.const 1)))
@@ -56,7 +56,7 @@
 
   (func (export "throw-nested-call") (result i32)
     (try (result i32)
-      (call $call-call-throw-i32 (i32.const 42))
+      (do (call $call-call-throw-i32 (i32.const 42)))
       (catch
         drop
         (i32.const 1)))
@@ -64,12 +64,12 @@
 
   (func (export "sequenced-try-catch") (result i32) (local i32)
     (try
-      nop
+      (do nop)
       (catch
         drop
         (local.set 0 (i32.const 99))))
     (try
-      (throw 0)
+      (do (throw 0))
       (catch
         drop
         (local.set 0 (i32.const 42))))
@@ -77,15 +77,17 @@
 
   (func (export "nested-try-catch") (result i32) (local i32)
     (try
-      (try
+      (do
         (try
-          (throw 0)
+          (do
+            (try
+              (do (throw 0))
+              (catch
+                drop
+                (local.set 0 (i32.const 42)))))
           (catch
             drop
-            (local.set 0 (i32.const 42))))
-        (catch
-          drop
-          (local.set 0 (i32.const 97))))
+            (local.set 0 (i32.const 97)))))
       (catch
         drop
         (local.set 0 (i32.const 98))))
@@ -93,9 +95,10 @@
 
   (func (export "br-before-throw") (result i32)
     (try (result i32)
-      (i32.const 2)
-      (br 0)
-      (throw 0)
+      (do
+        (i32.const 2)
+        (br 0)
+        (throw 0))
       (catch
         drop
         (i32.const 1)))
@@ -104,7 +107,7 @@
   (func (export "try-with-params") (result i32)
     (i32.const 42)
     (try (param i32) (result i32)
-      nop
+      (do nop)
       (catch
         drop
         (i32.const 99)))
@@ -113,7 +116,7 @@
   (func (export "try-with-params-2") (result i32)
     (i32.const 42)
     (try (param i32) (result i32)
-      (throw 1)
+      (do (throw 1))
       (catch
         (br_on_exn 0 $exn-i32)
         drop
@@ -122,7 +125,7 @@
 
   (func (export "no-catch-on-trap") (result i32) (local i32)
     (try
-      unreachable
+      (do unreachable)
       (catch
         drop
         (local.set 0 (i32.const 99))))

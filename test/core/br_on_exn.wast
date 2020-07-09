@@ -7,7 +7,7 @@
 
   (func (export "br-on-exn-i32") (result i32)
     (try (result i32)
-      (i32.const 1)
+      (do (i32.const 1))
       (catch
        (br_on_exn 0 $exn-i32)
        drop
@@ -16,8 +16,9 @@
 
   (func (export "throw-to-br-on-exn-i32") (result i32)
     (try (result i32)
-      (i32.const 42)
-      (throw 0)
+      (do
+        (i32.const 42)
+        (throw 0))
       (catch
         (br_on_exn 0 $exn-i32)
         drop
@@ -26,8 +27,9 @@
 
   (func (export "non-matching-tag") (result i32)
     (try (result i32)
-      (i32.const 42)
-      (throw 1)
+      (do
+        (i32.const 42)
+        (throw 1))
       (catch
         (br_on_exn 0 $exn-i32)
         drop
@@ -36,11 +38,12 @@
 
   (func (export "extract-multiple-params") (result i32)
     (try (result i32 i64 f32 f64)
-      (i32.const 42)
-      (i64.const 84)
-      (f32.const 42.2)
-      (f64.const 84.4)
-      (throw 2)
+      (do
+        (i32.const 42)
+        (i64.const 84)
+        (f32.const 42.2)
+        (f64.const 84.4)
+        (throw 2))
       (catch
         (br_on_exn 0 $exn-all)
         drop
@@ -59,11 +62,12 @@
     (throw 2))
   (func (export "extract-multiple-params-call") (result i32)
     (try (result i32 i64 f32 f64)
-      (i32.const 42)
-      (i64.const 84)
-      (f32.const 42.2)
-      (f64.const 84.4)
-      (call $throw-helper)
+      (do
+        (i32.const 42)
+        (i64.const 84)
+        (f32.const 42.2)
+        (f64.const 84.4)
+        (call $throw-helper))
       (catch
         (br_on_exn 0 $exn-all)
         drop
@@ -76,8 +80,9 @@
 
   (func (export "multiple-br-on-exn") (result i32)
     (try (result i32)
-      (i32.const 42)
-      (throw 1)
+      (do
+        (i32.const 42)
+        (throw 1))
       (catch
         (block (param exnref) (result i32)
           (br_on_exn 0 $exn-i32)

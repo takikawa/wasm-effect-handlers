@@ -165,7 +165,7 @@ let block_type at (c : context) = function
 %token UNREACHABLE MEMORY_SIZE MEMORY_GROW
 %token FUNC START TYPE PARAM RESULT LOCAL GLOBAL
 %token TABLE ELEM MEMORY DATA OFFSET IMPORT EXPORT TABLE
-%token EXCEPTION TRY CATCH THROW RETHROW
+%token EXCEPTION TRY DO CATCH THROW RETHROW
 %token MODULE BIN QUOTE
 %token SCRIPT REGISTER INVOKE GET
 %token ASSERT_MALFORMED ASSERT_INVALID ASSERT_SOFT_INVALID ASSERT_UNLINKABLE
@@ -531,7 +531,7 @@ try_block_result_body :
       FuncType (ins, $3 @ out), snd $5 }
 
 try_ :
- | LPAR THEN instr_list RPAR LPAR CATCH instr_list RPAR
+ | LPAR DO instr_list RPAR LPAR CATCH instr_list RPAR
    { fun c ->
      let es1, es2 = $3 c, $7 c in
      (es1, es2) }

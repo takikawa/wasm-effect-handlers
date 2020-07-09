@@ -201,6 +201,7 @@ rule token = parse
   | "call" { CALL }
   | "call_indirect" { CALL_INDIRECT }
   | "try" { TRY }
+  | "do" { DO }
   | "catch" { CATCH }
   | "throw" { THROW }
   | "rethrow" { RETHROW }
