@@ -101,7 +101,7 @@ let encode m =
     let ref_type = function
       | FuncRefType -> vs7 (-0x10)
       | AnyRefType -> vs7 (-0x11)
-      | ExnRefType -> assert false (* TODO FIXME. *)
+      | ExnRefType -> vs7 (-0x18)
       | NullRefType -> assert false
 
     let value_type = function
