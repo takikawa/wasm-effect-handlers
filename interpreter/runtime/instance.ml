@@ -9,6 +9,8 @@ type module_inst =
   globals : global_inst list;
   exceptions : exception_inst list;
   exports : export_inst list;
+  elems : elem_inst list;
+  datas : data_inst list;
 }
 
 and func_inst = module_inst ref Func.t
@@ -17,6 +19,8 @@ and memory_inst = Memory.t
 and global_inst = Global.t
 and exception_inst = Exception.t
 and export_inst = Ast.name * extern
+and elem_inst = Values.ref_ list ref
+and data_inst = string ref
 
 and extern =
   | ExternFunc of func_inst
@@ -26,7 +30,7 @@ and extern =
   | ExternException of exception_inst
 
 
-(* Reference type extensions *)
+(* Reference types *)
 
 type Values.ref_ += FuncRef of func_inst
 type Values.ref_ += ExnRef of Exception.package
@@ -48,7 +52,7 @@ let () =
 
 let empty_module_inst =
   { types = []; funcs = []; tables = []; memories = []; globals = [];
-    exceptions = []; exports = [] }
+    exceptions = []; exports = []; elems = []; datas = [] }
 
 let extern_type_of = function
   | ExternFunc func -> ExternFuncType (Func.type_of func)

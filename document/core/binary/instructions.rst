@@ -39,7 +39,7 @@ Control Instructions
 .. _binary-call_indirect:
 
 .. math::
-   \begin{array}{llclll}
+   \begin{array}{llcllll}
    \production{block type} & \Bblocktype &::=&
      \hex{40} &\Rightarrow& \epsilon \\ &&|&
      t{:}\Bvaltype &\Rightarrow& t \\ &&|&
@@ -68,6 +68,13 @@ Control Instructions
 .. note::
    The |ELSE| opcode :math:`\hex{05}` in the encoding of an |IF| instruction can be omitted if the following instruction sequence is empty.
 
+   Unlike any :ref:`other occurrence <binary-typeidx>`, the :ref:`type index <syntax-typeidx>` in a :ref:`block type <syntax-blocktype>` is encoded as a positive :ref:`signed integer <syntax-sint>`, so that its |SignedLEB128| bit pattern cannot collide with the encoding of :ref:`value types <binary-valtype>` or the special code :math:`\hex{40}`, which correspond to the LEB128 encoding of negative integers.
+   To avoid any loss in the range of allowed indices, it is treated as a 33 bit signed integer. 
+
+   In future versions of WebAssembly, the zero byte occurring in the encoding
+   of the |CALLINDIRECT| instruction may be used to index additional tables.
+
+
 .. index:: reference instruction
    pair: binary format; instruction
 .. _binary-instr-ref:
@@ -83,7 +90,7 @@ Reference Instructions
 .. math::
    \begin{array}{llclll}
    \production{instruction} & \Binstr &::=& \dots \\ &&|&
-     \hex{D0} &\Rightarrow& \REFNULL \\ &&|&
+     \hex{D0}~~t{:}\Breftype &\Rightarrow& \REFNULL~t \\ &&|&
      \hex{D1} &\Rightarrow& \REFISNULL \\ &&|&
      \hex{D2}~~x{:}\Bfuncidx &\Rightarrow& \REFFUNC~x \\
    \end{array}
@@ -99,7 +106,7 @@ Reference Instructions
 Parametric Instructions
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-:ref:`Parametric instructions <syntax-instr-parametric>` are represented by single byte codes.
+:ref:`Parametric instructions <syntax-instr-parametric>` are represented by single byte codes, possibly followed by a type annotation.
 
 .. _binary-drop:
 .. _binary-select:
@@ -108,7 +115,8 @@ Parametric Instructions
    \begin{array}{llclll}
    \production{instruction} & \Binstr &::=& \dots \\ &&|&
      \hex{1A} &\Rightarrow& \DROP \\ &&|&
-     \hex{1B} &\Rightarrow& \SELECT \\
+     \hex{1B} &\Rightarrow& \SELECT \\ &&|&
+     \hex{1C}~~t^\ast{:}\Bvec(\Bvaltype) &\Rightarrow& \SELECT~t^\ast \\
    \end{array}
 
 
@@ -141,24 +149,32 @@ Variable Instructions
 .. index:: table instruction, table index
    pair: binary format; instruction
 .. _binary-instr-table:
+.. _binary-table.get:
+.. _binary-table.set:
+.. _binary-table.size:
+.. _binary-table.grow:
+.. _binary-table.fill:
+.. _binary-table.copy:
+.. _binary-table.init:
+.. _binary-elem.drop:
 
 Table Instructions
 ~~~~~~~~~~~~~~~~~~
 
-:ref:`Table instructions <syntax-instr-table>` are represented by single byte codes.
-
-.. _binary-table.get:
-.. _binary-table.set:
+:ref:`Table instructions <syntax-instr-table>` are represented by either single byte or two byte codes.
 
 .. math::
    \begin{array}{llclll}
    \production{instruction} & \Binstr &::=& \dots \\ &&|&
      \hex{25}~~x{:}\Btableidx &\Rightarrow& \TABLEGET~x \\ &&|&
-     \hex{26}~~x{:}\Btableidx &\Rightarrow& \TABLESET~x \\
+     \hex{26}~~x{:}\Btableidx &\Rightarrow& \TABLESET~x \\ &&|&
+     \hex{FC}~\hex{0F}~~x{:}\Btableidx &\Rightarrow& \TABLEGROW~x \\ &&|&
+     \hex{FC}~\hex{10}~~x{:}\Btableidx &\Rightarrow& \TABLESIZE~x \\ &&|&
+     \hex{FC}~\hex{11}~~x{:}\Btableidx &\Rightarrow& \TABLEFILL~x \\
+     \hex{FC}~\hex{0C}~~y{:}\Belemidx~~x{:}\Btableidx &\Rightarrow& \TABLEINIT~x~y \\ &&|&
+     \hex{FC}~\hex{0D}~~x{:}\Belemidx &\Rightarrow& \ELEMDROP~x \\ &&|&
+     \hex{FC}~\hex{0E}~~x{:}\Btableidx~~y{:}\Btableidx &\Rightarrow& \TABLECOPY~x~y \\
    \end{array}
-
-.. note::
-   These opcode assignments are preliminary.
 
 
 .. index:: memory instruction, memory index
@@ -177,6 +193,10 @@ Each variant of :ref:`memory instruction <syntax-instr-memory>` is encoded with 
 .. _binary-storen:
 .. _binary-memory.size:
 .. _binary-memory.grow:
+.. _binary-memory.fill:
+.. _binary-memory.copy:
+.. _binary-memory.init:
+.. _binary-data.drop:
 
 .. math::
    \begin{array}{llclll}
@@ -207,11 +227,15 @@ Each variant of :ref:`memory instruction <syntax-instr-memory>` is encoded with 
      \hex{3D}~~m{:}\Bmemarg &\Rightarrow& \I64.\STORE\K{16}~m \\ &&|&
      \hex{3E}~~m{:}\Bmemarg &\Rightarrow& \I64.\STORE\K{32}~m \\ &&|&
      \hex{3F}~~\hex{00} &\Rightarrow& \MEMORYSIZE \\ &&|&
-     \hex{40}~~\hex{00} &\Rightarrow& \MEMORYGROW \\
+     \hex{40}~~\hex{00} &\Rightarrow& \MEMORYGROW \\ &&|&
+     \hex{FC}~\hex{08}~~x{:}\Bdataidx~~\hex{00} &\Rightarrow& \MEMORYINIT~x \\ &&|&
+     \hex{FC}~\hex{09}~~x{:}\Bdataidx &\Rightarrow& \DATADROP~x \\ &&|&
+     \hex{FC}~\hex{0A}~~\hex{00}~~\hex{00} &\Rightarrow& \MEMORYCOPY \\ &&|&
+     \hex{FC}~\hex{0B}~~\hex{00} &\Rightarrow& \MEMORYFILL \\
    \end{array}
 
 .. note::
-   In future versions of WebAssembly, the additional zero bytes occurring in the encoding of the |MEMORYSIZE| and |MEMORYGROW| instructions may be used to index additional memories.
+   In future versions of WebAssembly, the additional zero bytes occurring in the encoding of the |MEMORYSIZE|, |MEMORYGROW|, |MEMORYCOPY|, and |MEMORYFILL| instructions may be used to index additional memories.
 
 
 .. index:: numeric instruction
@@ -412,6 +436,34 @@ All other numeric instructions are plain opcodes without any immediates.
      \hex{BD} &\Rightarrow& \I64.\REINTERPRET\K{\_}\F64 \\ &&|&
      \hex{BE} &\Rightarrow& \F32.\REINTERPRET\K{\_}\I32 \\ &&|&
      \hex{BF} &\Rightarrow& \F64.\REINTERPRET\K{\_}\I64 \\
+   \end{array}
+
+.. _binary-cvtop-trunc-sat:
+
+The saturating truncation instructions all have a one byte prefix.
+
+.. math::
+   \begin{array}{llclll}
+   \production{instruction} & \Binstr &::=& \dots && \phantom{thisshouldbeenough} \\&&|&
+     \hex{FC}~\hex{00} &\Rightarrow& \I32.\TRUNC\K{\_sat\_}\F32\K{\_s} \\ &&|&
+     \hex{FC}~\hex{01} &\Rightarrow& \I32.\TRUNC\K{\_sat\_}\F32\K{\_u} \\ &&|&
+     \hex{FC}~\hex{02} &\Rightarrow& \I32.\TRUNC\K{\_sat\_}\F64\K{\_s} \\ &&|&
+     \hex{FC}~\hex{03} &\Rightarrow& \I32.\TRUNC\K{\_sat\_}\F64\K{\_u} \\ &&|&
+     \hex{FC}~\hex{04} &\Rightarrow& \I64.\TRUNC\K{\_sat\_}\F32\K{\_s} \\ &&|&
+     \hex{FC}~\hex{05} &\Rightarrow& \I64.\TRUNC\K{\_sat\_}\F32\K{\_u} \\ &&|&
+     \hex{FC}~\hex{06} &\Rightarrow& \I64.\TRUNC\K{\_sat\_}\F64\K{\_s} \\ &&|&
+     \hex{FC}~\hex{07} &\Rightarrow& \I64.\TRUNC\K{\_sat\_}\F64\K{\_u} \\
+   \end{array}
+
+
+.. math::
+   \begin{array}{llclll}
+   \phantom{\production{instruction}} & \phantom{\Binstr} &\phantom{::=}& \phantom{\dots} && \phantom{thisshouldbeenough} \\[-2ex] &&|&
+     \hex{C0} &\Rightarrow& \I32.\EXTEND\K{8\_s} \\ &&|&
+     \hex{C1} &\Rightarrow& \I32.\EXTEND\K{16\_s} \\ &&|&
+     \hex{C2} &\Rightarrow& \I64.\EXTEND\K{8\_s} \\ &&|&
+     \hex{C3} &\Rightarrow& \I64.\EXTEND\K{16\_s} \\ &&|&
+     \hex{C4} &\Rightarrow& \I64.\EXTEND\K{32\_s} \\
    \end{array}
 
 

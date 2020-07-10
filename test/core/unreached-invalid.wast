@@ -535,6 +535,7 @@
   ))
   "type mismatch"
 )
+
 (assert_invalid
   (module (func $type-br_table-label-num-vs-label-num-after-unreachable
     (block (result f64)

@@ -1243,18 +1243,10 @@
     )
   )
 
-  (func (export "meet-anyref") (param i32) (param anyref) (result anyref)
-    (block $l1 (result anyref)
-      (block $l2 (result anyref)
+  (func (export "meet-externref") (param i32) (param externref) (result externref)
+    (block $l1 (result externref)
+      (block $l2 (result externref)
         (br_table $l1 $l2 $l1 (local.get 1) (local.get 0))
-      )
-    )
-  )
-
-  (func (export "meet-funcref") (param i32) (result anyref)
-    (block $l1 (result anyref)
-      (block $l2 (result funcref)
-        (br_table $l2 $l1 $l2 (table.get 0 (i32.const 0)) (local.get 0))
       )
     )
   )
@@ -1441,17 +1433,20 @@
 
 (assert_return (invoke "nested-br_table-loop-block" (i32.const 1)) (i32.const 3))
 
-(assert_return (invoke "meet-anyref" (i32.const 0) (ref.host 1)) (ref.host 1))
-(assert_return (invoke "meet-anyref" (i32.const 1) (ref.host 1)) (ref.host 1))
-(assert_return (invoke "meet-anyref" (i32.const 2) (ref.host 1)) (ref.host 1))
-
-(assert_return_func (invoke "meet-funcref" (i32.const 0)))
-(assert_return_func (invoke "meet-funcref" (i32.const 1)))
-(assert_return_func (invoke "meet-funcref" (i32.const 2)))
+(assert_return (invoke "meet-externref" (i32.const 0) (ref.extern 1)) (ref.extern 1))
+(assert_return (invoke "meet-externref" (i32.const 1) (ref.extern 1)) (ref.extern 1))
+(assert_return (invoke "meet-externref" (i32.const 2) (ref.extern 1)) (ref.extern 1))
 
 (assert_invalid
   (module (func $type-arg-void-vs-num (result i32)
     (block (br_table 0 (i32.const 1)) (i32.const 1))
+  ))
+  "type mismatch"
+)
+
+(assert_invalid
+  (module (func $type-arg-empty-vs-num (result i32)
+    (block (br_table 0) (i32.const 1))
   ))
   "type mismatch"
 )
@@ -1516,14 +1511,69 @@
 )
 
 (assert_invalid
-  (module (func $meet-bottom (param i32) (result anyref)
-    (block $l1 (result anyref)
+  (module (func $type-arg-void-vs-num (result i32)
+    (block (br_table 0 (i32.const 1)) (i32.const 1))
+  ))
+  "type mismatch"
+)
+
+(assert_invalid
+  (module
+    (func $type-arg-index-empty-in-then
+      (block
+        (i32.const 0) (i32.const 0)
+        (if (result i32) (then (br_table 0)))
+      )
+      (i32.eqz) (drop)
+    )
+  )
+  "type mismatch"
+)
+(assert_invalid
+  (module
+    (func $type-arg-value-empty-in-then
+      (block
+        (i32.const 0) (i32.const 0)
+        (if (result i32) (then (br_table 0 (i32.const 1))))
+      )
+      (i32.eqz) (drop)
+    )
+  )
+  "type mismatch"
+)
+(assert_invalid
+  (module
+    (func $type-arg-index-empty-in-return
+      (block (result i32)
+        (return (br_table 0))
+      )
+      (i32.eqz) (drop)
+    )
+  )
+  "type mismatch"
+)
+(assert_invalid
+  (module
+    (func $type-arg-value-empty-in-return
+      (block (result i32)
+        (return (br_table 0 (i32.const 1)))
+      )
+      (i32.eqz) (drop)
+    )
+  )
+  "type mismatch"
+)
+
+
+(assert_invalid
+  (module (func $meet-bottom (param i32) (result externref)
+    (block $l1 (result externref)
       (drop
         (block $l2 (result i32)
-          (br_table $l2 $l1 $l2 (ref.null) (local.get 0))
+          (br_table $l2 $l1 $l2 (ref.null extern) (local.get 0))
         )
       )
-      (ref.null)
+      (ref.null extern)
     )
   ))
   "type mismatch"

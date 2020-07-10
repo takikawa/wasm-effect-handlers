@@ -160,7 +160,8 @@ rule token = parse
   | '"'character*'\\'_
     { error_nest (Lexing.lexeme_end_p lexbuf) lexbuf "illegal escape" }
 
-  | "anyref" { ANYREF }
+  | "extern" { EXTERN }
+  | "externref" { EXTERNREF }
   | "funcref" { FUNCREF }
   | "exnref"  { EXNREF }
   | (nxx as t) { NUM_TYPE (num_type t) }
@@ -180,7 +181,7 @@ rule token = parse
     }
   | "ref.null" { REF_NULL }
   | "ref.func" { REF_FUNC }
-  | "ref.host" { REF_HOST }
+  | "ref.extern" { REF_EXTERN }
   | "ref.is_null" { REF_IS_NULL }
 
   | "nop" { NOP }
@@ -211,8 +212,22 @@ rule token = parse
   | "local.tee" { LOCAL_TEE }
   | "global.get" { GLOBAL_GET }
   | "global.set" { GLOBAL_SET }
+
   | "table.get" { TABLE_GET }
   | "table.set" { TABLE_SET }
+  | "table.size" { TABLE_SIZE }
+  | "table.grow" { TABLE_GROW }
+  | "table.fill" { TABLE_FILL }
+  | "table.copy" { TABLE_COPY }
+  | "table.init" { TABLE_INIT }
+  | "elem.drop" { ELEM_DROP }
+
+  | "memory.size" { MEMORY_SIZE }
+  | "memory.grow" { MEMORY_GROW }
+  | "memory.fill" { MEMORY_FILL }
+  | "memory.copy" { MEMORY_COPY }
+  | "memory.init" { MEMORY_INIT }
+  | "data.drop" { DATA_DROP }
 
   | (nxx as t)".load"
     { LOAD (fun a o ->
@@ -253,6 +268,9 @@ rule token = parse
   | (ixx as t)".clz" { UNARY (intop t i32_clz i64_clz) }
   | (ixx as t)".ctz" { UNARY (intop t i32_ctz i64_ctz) }
   | (ixx as t)".popcnt" { UNARY (intop t i32_popcnt i64_popcnt) }
+  | (ixx as t)".extend8_s" { UNARY (intop t i32_extend8_s i64_extend8_s) }
+  | (ixx as t)".extend16_s" { UNARY (intop t i32_extend16_s i64_extend16_s) }
+  | "i64.extend32_s" { UNARY i64_extend32_s }
   | (fxx as t)".neg" { UNARY (floatop t f32_neg f64_neg) }
   | (fxx as t)".abs" { UNARY (floatop t f32_abs f64_abs) }
   | (fxx as t)".sqrt" { UNARY (floatop t f32_sqrt f64_sqrt) }
@@ -316,6 +334,14 @@ rule token = parse
     { CONVERT (intop t i32_trunc_f64_s i64_trunc_f64_s) }
   | (ixx as t)".trunc_f64_u"
     { CONVERT (intop t i32_trunc_f64_u i64_trunc_f64_u) }
+  | (ixx as t)".trunc_sat_f32_s"
+    { CONVERT (intop t i32_trunc_sat_f32_s i64_trunc_sat_f32_s) }
+  | (ixx as t)".trunc_sat_f32_u"
+    { CONVERT (intop t i32_trunc_sat_f32_u i64_trunc_sat_f32_u) }
+  | (ixx as t)".trunc_sat_f64_s"
+    { CONVERT (intop t i32_trunc_sat_f64_s i64_trunc_sat_f64_s) }
+  | (ixx as t)".trunc_sat_f64_u"
+    { CONVERT (intop t i32_trunc_sat_f64_u i64_trunc_sat_f64_u) }
   | (fxx as t)".convert_i32_s"
     { CONVERT (floatop t f32_convert_i32_s f64_convert_i32_s) }
   | (fxx as t)".convert_i32_u"
@@ -329,9 +355,6 @@ rule token = parse
   | "i32.reinterpret_f32" { CONVERT i32_reinterpret_f32 }
   | "i64.reinterpret_f64" { CONVERT i64_reinterpret_f64 }
 
-  | "memory.size" { MEMORY_SIZE }
-  | "memory.grow" { MEMORY_GROW }
-
   | "type" { TYPE }
   | "func" { FUNC }
   | "start" { START }
@@ -343,7 +366,9 @@ rule token = parse
   | "memory" { MEMORY }
   | "elem" { ELEM }
   | "data" { DATA }
+  | "declare" { DECLARE }
   | "offset" { OFFSET }
+  | "item" { ITEM }
   | "import" { IMPORT }
   | "export" { EXPORT }
   | "exception" { EXCEPTION }
@@ -360,12 +385,10 @@ rule token = parse
   | "assert_invalid" { ASSERT_INVALID }
   | "assert_unlinkable" { ASSERT_UNLINKABLE }
   | "assert_return" { ASSERT_RETURN }
-  | "assert_return_canonical_nan" { ASSERT_RETURN_CANONICAL_NAN }
-  | "assert_return_arithmetic_nan" { ASSERT_RETURN_ARITHMETIC_NAN }
-  | "assert_return_ref" { ASSERT_RETURN_REF }
-  | "assert_return_func" { ASSERT_RETURN_FUNC }
   | "assert_trap" { ASSERT_TRAP }
   | "assert_exhaustion" { ASSERT_EXHAUSTION }
+  | "nan:canonical" { NAN Script.CanonicalNan }
+  | "nan:arithmetic" { NAN Script.ArithmeticNan }
   | "input" { INPUT }
   | "output" { OUTPUT }
 

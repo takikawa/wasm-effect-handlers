@@ -5,8 +5,6 @@ Most :ref:`types <syntax-type>` are universally valid.
 However, restrictions apply to :ref:`limits <syntax-limits>`, which must be checked during validation.
 Moreover, :ref:`block types <syntax-blocktype>` are converted to plain :ref:`function types <syntax-functype>` for ease of processing.
 
-On :ref:`value types <syntax-valtype>`, a simple notion of subtyping is defined.
-
 
 .. index:: limits
    pair: validation; limits
@@ -80,6 +78,28 @@ Block Types
    }
 
 
+.. index:: function type
+   pair: validation; function type
+   single: abstract syntax; function type
+.. _valid-functype:
+
+Function Types
+~~~~~~~~~~~~~~
+
+:ref:`Function types <syntax-functype>` are always valid.
+
+:math:`[t_1^n] \to [t_2^m]`
+...........................
+
+* The function type is valid.
+
+.. math::
+   \frac{
+   }{
+     \vdashfunctype [t_1^\ast] \to [t_2^\ast] \ok
+   }
+
+
 .. index:: table type, reference type, limits
    pair: validation; table type
    single: abstract syntax; table type
@@ -91,13 +111,13 @@ Table Types
 :math:`\limits~\reftype`
 ........................
 
-* The limits :math:`\limits` must be :ref:`valid <valid-limits>` within range :math:`2^{32}`.
+* The limits :math:`\limits` must be :ref:`valid <valid-limits>` within range :math:`2^{32}-1`.
 
 * Then the table type is valid.
 
 .. math::
    \frac{
-     \vdashlimits \limits : 2^{32}
+     \vdashlimits \limits : 2^{32} - 1
    }{
      \vdashtabletype \limits~\reftype \ok
    }
@@ -146,93 +166,191 @@ Global Types
    }
 
 
-.. index:: subtyping
+.. index:: external type, function type, table type, memory type, global type
+   pair: validation; external type
+   single: abstract syntax; external type
+.. _valid-externtype:
 
-Value Subtyping
-~~~~~~~~~~~~~~~
+External Types
+~~~~~~~~~~~~~~
 
-.. index:: number type
+:math:`\ETFUNC~\functype`
+.........................
 
-.. _match-numtype:
+* The :ref:`function type <syntax-functype>` :math:`\functype` must be :ref:`valid <valid-functype>`.
 
-Number Types
-............
+* Then the external type is valid.
 
-A :ref:`number type <syntax-numtype>` :math:`\numtype_1` matches a :ref:`number type <syntax-numtype>` :math:`\numtype_2` if and only if:
+.. math::
+   \frac{
+     \vdashfunctype \functype \ok
+   }{
+     \vdashexterntype \ETFUNC~\functype \ok
+   }
 
-* Both :math:`\numtype_1` and :math:`\numtype_2` are the same.
+:math:`\ETTABLE~\tabletype`
+...........................
+
+* The :ref:`table type <syntax-tabletype>` :math:`\tabletype` must be :ref:`valid <valid-tabletype>`.
+
+* Then the external type is valid.
+
+.. math::
+   \frac{
+     \vdashtabletype \tabletype \ok
+   }{
+     \vdashexterntype \ETTABLE~\tabletype \ok
+   }
+
+:math:`\ETMEM~\memtype`
+.......................
+
+* The :ref:`memory type <syntax-memtype>` :math:`\memtype` must be :ref:`valid <valid-memtype>`.
+
+* Then the external type is valid.
+
+.. math::
+   \frac{
+     \vdashmemtype \memtype \ok
+   }{
+     \vdashexterntype \ETMEM~\memtype \ok
+   }
+
+:math:`\ETGLOBAL~\globaltype`
+.............................
+
+* The :ref:`global type <syntax-globaltype>` :math:`\globaltype` must be :ref:`valid <valid-globaltype>`.
+
+* Then the external type is valid.
+
+.. math::
+   \frac{
+     \vdashglobaltype \globaltype \ok
+   }{
+     \vdashexterntype \ETGLOBAL~\globaltype \ok
+   }
+
+
+.. index:: ! matching, external type
+.. _exec-import:
+.. _match:
+
+Import Subtyping
+~~~~~~~~~~~~~~~~
+
+When :ref:`instantiating <exec-module>` a module,
+:ref:`external values <syntax-externval>` must be provided whose :ref:`types <valid-externval>` are *matched* against the respective :ref:`external types <syntax-externtype>` classifying each import.
+In some cases, this allows for a simple form of subtyping, as defined here.
+
+
+.. index:: limits
+.. _match-limits:
+
+Limits
+......
+
+:ref:`Limits <syntax-limits>` :math:`\{ \LMIN~n_1, \LMAX~m_1^? \}` match limits :math:`\{ \LMIN~n_2, \LMAX~m_2^? \}` if and only if:
+
+* :math:`n_1` is larger than or equal to :math:`n_2`.
+
+* Either:
+
+  * :math:`m_2^?` is empty.
+
+* Or:
+
+  * Both :math:`m_1^?` and :math:`m_2^?` are non-empty.
+
+  * :math:`m_1` is smaller than or equal to :math:`m_2`.
+
+.. math::
+   ~\\[-1ex]
+   \frac{
+     n_1 \geq n_2
+   }{
+     \vdashlimitsmatch \{ \LMIN~n_1, \LMAX~m_1^? \} \matcheslimits \{ \LMIN~n_2, \LMAX~\epsilon \}
+   }
+   \quad
+   \frac{
+     n_1 \geq n_2
+     \qquad
+     m_1 \leq m_2
+   }{
+     \vdashlimitsmatch \{ \LMIN~n_1, \LMAX~m_1 \} \matcheslimits \{ \LMIN~n_2, \LMAX~m_2 \}
+   }
+
+
+.. _match-externtype:
+
+.. index:: function type
+.. _match-functype:
+
+Functions
+.........
+
+An :ref:`external type <syntax-externtype>` :math:`\ETFUNC~\functype_1` matches :math:`\ETFUNC~\functype_2` if and only if:
+
+* Both :math:`\functype_1` and :math:`\functype_2` are the same.
 
 .. math::
    ~\\[-1ex]
    \frac{
    }{
-     \vdashnumtypematch \numtype \matchesvaltype \numtype
+     \vdashexterntypematch \ETFUNC~\functype \matchesexterntype \ETFUNC~\functype
    }
 
 
-.. index:: reference type
+.. index:: table type, limits, element type
+.. _match-tabletype:
 
-.. _match-reftype:
+Tables
+......
 
-Reference Types
-...............
+An :ref:`external type <syntax-externtype>` :math:`\ETTABLE~(\limits_1~\reftype_1)` matches :math:`\ETTABLE~(\limits_2~\reftype_2)` if and only if:
 
-A :ref:`reference type <syntax-reftype>` :math:`\reftype_1` matches a :ref:`reference type <syntax-reftype>` :math:`\reftype_2` if and only if:
+* Limits :math:`\limits_1` :ref:`match <match-limits>` :math:`\limits_2`.
 
-* Either both :math:`\reftype_1` and :math:`\reftype_2` are the same.
+* Both :math:`\reftype_1` and :math:`\reftype_2` are the same.
 
-* Or :math:`\reftype_1` is |NULLREF|.
+.. math::
+   \frac{
+     \vdashlimitsmatch \limits_1 \matcheslimits \limits_2
+   }{
+     \vdashexterntypematch \ETTABLE~(\limits_1~\reftype) \matchesexterntype \ETTABLE~(\limits_2~\reftype)
+   }
 
-* Or :math:`\reftype_2` is |ANYREF|.
+
+.. index:: memory type, limits
+.. _match-memtype:
+
+Memories
+........
+
+An :ref:`external type <syntax-externtype>` :math:`\ETMEM~\limits_1` matches :math:`\ETMEM~\limits_2` if and only if:
+
+* Limits :math:`\limits_1` :ref:`match <match-limits>` :math:`\limits_2`.
+
+.. math::
+   \frac{
+     \vdashlimitsmatch \limits_1 \matcheslimits \limits_2
+   }{
+     \vdashexterntypematch \ETMEM~\limits_1 \matchesexterntype \ETMEM~\limits_2
+   }
+
+
+.. index:: global type, value type, mutability
+.. _match-globaltype:
+
+Globals
+.......
+
+An :ref:`external type <syntax-externtype>` :math:`\ETGLOBAL~\globaltype_1` matches :math:`\ETGLOBAL~\globaltype_2` if and only if:
+
+* Both :math:`\globaltype_1` and :math:`\globaltype_2` are the same.
 
 .. math::
    ~\\[-1ex]
    \frac{
    }{
-     \vdashreftypematch \reftype \matchesvaltype \reftype
-   }
-   \qquad
-   \frac{
-   }{
-     \vdashreftypematch \NULLREF \matchesvaltype \reftype
-   }
-   \qquad
-   \frac{
-   }{
-     \vdashreftypematch \reftype \matchesvaltype \ANYREF
-   }
-
-
-.. index:: value type, number type, reference type
-
-.. _match-valtype:
-
-Value Types
-...........
-
-A :ref:`value type <syntax-valtype>` :math:`\valtype_1` matches a :ref:`value type <syntax-valtype>` :math:`\valtype_2` if and only if:
-
-* Either both :math:`\valtype_1` and :math:`\valtype_2` are :ref:`number types <syntax-numtype>` and :math:`\valtype_1` :ref:`matches <match-numtype>` :math:`\valtype_2`.
-
-* Or both :math:`\valtype_1` and :math:`\valtype_2` are :ref:`reference types <syntax-reftype>` and :math:`\valtype_1` :ref:`matches <match-reftype>` :math:`\valtype_2`.
-
-
-.. _match-resulttype:
-
-Result Types
-............
-
-Subtyping is lifted to :ref:`result types <syntax-resulttype>` in a pointwise manner.
-That is, a :ref:`result type <syntax-resulttype>` :math:`[t_1^?]` matches a :ref:`result type <syntax-resulttype>` :math:`[t_2^?]` if and only if:
-
-* Either both :math:`t_1^?` and :math:`t_2^?` are empty.
-
-* Or :ref:`value type <syntax-valtype>` :math:`t_1` :ref:`matches <match-valtype>` :ref:`value type <syntax-valtype>` :math:`t_2`.
-
-.. math::
-   ~\\[-1ex]
-   \frac{
-     (\vdashvaltypematch t_1 \matchesvaltype t_2)^?
-   }{
-     \vdashresulttypematch [t_1^?] \matchesresulttype [t_2^?]
+     \vdashexterntypematch \ETGLOBAL~\globaltype \matchesexterntype \ETGLOBAL~\globaltype
    }

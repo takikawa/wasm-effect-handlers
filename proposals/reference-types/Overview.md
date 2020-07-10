@@ -6,30 +6,32 @@ TODO: more text, motivation, explanation
 
 Motivation:
 
-* Easier and more efficient interop with host environment (see the [host bindings proposal](https://github.com/WebAssembly/host-bindings/blob/master/proposals/host-bindings/Overview.md))
-  - allow host references to be represented directly by type `anyref` (see [here](https://github.com/WebAssembly/host-bindings/issues/9))
+* Easier and more efficient interop with host environment (see e.g. the [Interface Types proposal](https://github.com/WebAssembly/interface-types/blob/master/proposals/interface-types/Explainer.md))
+  - allow host references to be represented directly by type `externref` (see [here](https://github.com/WebAssembly/interface-types/issues/9))
   - without having to go through tables, allocating slots, and maintaining index bijections at the boundaries
 
 * Basic manipulation of tables inside Wasm
   - allow representing data structures containing references
 by repurposing tables as a general memory for opaque data types
   - allow manipulating function tables from within Wasm.
+  - add instructions missing from [bulk operations proposal](https://github.com/WebAssembly/bulk-memory-operations/blob/master/proposals/bulk-memory-operations/Overview.md)
 
 * Set the stage for later additions:
 
   - Typed function references (see [below](#typed-function-references))
-  - Exception references (see the [exception handling proposal](https://github.com/WebAssembly/exception-handling/blob/master/proposals/Level-1.md) and [here](https://github.com/WebAssembly/host-bindings/issues/10))
+  - Exception references (see the [exception handling proposal](https://github.com/WebAssembly/exception-handling/blob/master/proposals/Exceptions.md) and [here](https://github.com/WebAssembly/interface-types/issues/10))
   - A smoother transition path to GC (see the [GC proposal](https://github.com/WebAssembly/gc/blob/master/proposals/gc/Overview.md))
 
 Get the most important parts soon!
 
 Summary:
-
-* Add a new type `anyref` that can be used as both a value type and a table element type.
+* Add new type `externref` that can be used as both a value types and a table element type.
 
 * Also allow `funcref` as a value type.
 
 * Introduce instructions to get and set table slots.
+
+* Add missing table size, grow, fill instructions.
 
 * Allow multiple tables.
 
@@ -44,10 +46,8 @@ Notes:
 
 Typing extensions:
 
-* Introduce `anyref`, `funcref`, and `nullref` as a new class of *reference types*.
-  - `reftype ::= anyref | funcref | nullref`
-  - `nullref` is merely an internal type and is neither expressible in the binary format, nor the text format, nor the JS API.
-  - Question: should it be?
+* Introduce `funcref` and `externref` as a new class of *reference types*.
+  - `reftype ::= funcref | externref`
 
 * Value types (of locals, globals, function parameters and results) can now be either numeric types or reference types.
   - `numtype ::= i32 | i64 | f32 | f64`
@@ -57,34 +57,71 @@ Typing extensions:
 * Element types (of tables) are equated with reference types.
   - `elemtype ::= <reftype>`
 
-* Introduce a simple subtype relation between reference types.
-  - reflexive transitive closure of the following rules
-  - `t < anyref` for all reftypes `t`
-  - `nullref < anyref` and `nullref < funcref`
-  - Note: No rule `nullref < t` for all reftypes `t` -- while that is derivable from the above given the current set of types it might not hold for future reference types which don't allow null.
-
 
 New/extended instructions:
 
+* The `select` instruction now optionally takes a value type immediate. Only annotated `select` can be used with reference types.
+  - `select : [t t i32] -> [t]`
+    - iff `t` is a `numtype`
+  - `select t : [t t i32] -> [t]`
+
 * The new instruction `ref.null` evaluates to the null reference constant.
-  - `ref.null : [] -> [nullref]`
+  - `ref.null rt : [] -> [rtref]`
+    - iff `rt = func` or `rt = extern`
   - allowed in constant expressions
 
 * The new instruction `ref.is_null` checks for null.
-  - `ref.is_null : [anyref] -> [i32]`
+  - `ref.is_null rt : [rtref] -> [i32]`
+    - iff `rt = func` or `rt = extern`
 
 * The new instruction `ref.func` creates a reference to a given function.
-  - `ref.func $x : [] -> [funcref]` iff `$x` is a function
+  - `ref.func $x : [] -> [funcref]`
+    - iff `$x : func $t`
+  - allowed in constant expressions
+  - Note: the result type of this instruction may be refined by future proposals (e.g., to `[(ref $t)]`)
 
 * The new instructions `table.get` and `table.set` access tables.
-  - `table.get $x : [i32] -> [t]` iff `t` is the element type of table `$x`
-  - `table.set $x : [i32 t] -> []` iff `t` is the element type of table `$x`
-  - `table.fill $x : [i32 i32 t] -> []` iff `t` is the element type of table `$x`
+  - `table.get $x : [i32] -> [t]`
+    - iff `$x : table t`
+  - `table.set $x : [i32 t] -> []`
+    - iff `$x : table t`
 
-* The `call_indirect` instruction takes a table index as immediate that identifies the table it calls through.
-  - `call_indirect (type $t) $x : [t1* i32] -> [t2*]` iff `$t` denotes the function type `[t1*] -> [t2*]` and the element type of table `$x` is a subtype of `funcref`.
-  - In the binary format, space for the index is already reserved.
-  - For backwards compatibility, the index may be omitted in the text format, in which case it defaults to 0.
+* The new instructions `table.size`and `table.grow` manipulate the size of a table.
+  - `table.size $x : [] -> [i32]`
+    - iff `$x : table t`
+  - `table.grow $x : [t i32] -> [i32]`
+    - iff `$x : table t`
+  - the first operand of `table.grow` is an initialisation value (for compatibility with future extensions to the type system, such as non-nullable references)
+
+* The new instruction `table.fill` fills a range in a table with a value.
+  - `table.fill $x : [i32 t i32] -> []`
+    - iff `$x : table t`
+  - the first operand is the start index of the range, the third operand its length (analoguous to `memory.fill`)
+  - traps when range+length > size of the table, but only after filling range up to size (analoguous to `memory.fill`)
+
+* The `table.init` instruction takes an additional table index as immediate.
+  - `table.init $x $y : [i32 i32 i32] -> []`
+    - iff `$x : table t`
+    - and `$y : elem t'`
+    - and `t' <: t`
+
+* The `table.copy` instruction takes two additional table indices as immediate.
+  - `table.copy $x $y : [i32 i32 i32] -> []`
+    - iff `$x : table t`
+    - and `$y : table t'`
+    - and `t' <: t`
+
+* The `call_indirect` instruction takes a table index as immediate.
+  - `call_indirect $x (type $t) : [t1* i32] -> [t2*]`
+    - iff `$t = [t1*] -> [t2*]`
+    - and `$x : table t'`
+    - and `t' <: funcref`
+
+* In all instructions, table indices can be omitted and default to 0.
+
+Note:
+- In the binary format, space for the additional table indices is already reserved.
+- For backwards compatibility, all table indices may be omitted in the text format, in which case they default to 0 (for `table.copy`, both indices must be either present or absent).
 
 
 Table extensions:
@@ -98,14 +135,30 @@ Table extensions:
   - For backwards compatibility, the index may be omitted in the text format, in which case it defaults to 0.
 
 
-API extensions:
+JS API extensions:
 
-* Any JS value can be passed as `anyref` to a Wasm function, stored in a global, or in a table.
+* Any JS value can be passed as `externref` to a Wasm function, stored in a global, or in a table.
 
 * Any Wasm exported function object or `null` can be passed as `funcref` to a Wasm function, stored in a global, or in a table.
 
+* The `WebAssembly.Table#grow` method takes an additional initialisation argument.
+  - optional for backwards compatibility, defaults to default value of respective type
+
 
 ## Possible Future Extensions
+
+
+### Subtyping
+
+Motivation:
+
+* Enable various extensions (see below).
+
+Additions:
+
+* Introduce a simple subtype relation between reference types.
+  - reflexive transitive closure of the following rules
+  - `t <: anyref` for all reftypes `t`
 
 
 ### Equality on references
@@ -122,7 +175,6 @@ Additions:
   - `reftype ::= ... | eqref`
 * It is a subtype of `anyref`
   - `eqref < anyref`
-  - `nullref < eqref`
 * Add `ref.eq` instruction.
   - `ref.eq : [eqref eqref] -> [i32]`
 
@@ -162,11 +214,6 @@ Additions:
   - Note: reference types are not necessarily subtypes of `eqref`, including functions
 
 * Typed function references cannot be null!
-
-* The `table.grow` instruction (see the [bulk operation proposal](https://github.com/WebAssembly/bulk-memory-operations/blob/master/proposals/bulk-memory-operations/Overview.md)) needs to take an initialisation argument.
-
-* Likewise `WebAssembly.Table#grow` takes an additional initialisation argument.
-  - optional for backwards compatibility, defaults to `null`
 
 
 ### Type Import/Export
@@ -223,7 +270,7 @@ Addition:
 Note:
 
 * Can decompose `call_indirect` (assuming multi-value proposal):
-  - `(call_indirect $t $x)` reduces to `(table.get $x) (cast $t anyref (ref $t) (then (call_ref (ref $t))) (else (unreachable)))`
+  - `(call_indirect $x (type $t))` reduces to `(table.get $x) (cast $t anyref (ref $t) (then (call_ref (ref $t))) (else (unreachable)))`
 
 
 ### GC Types

@@ -28,6 +28,7 @@ Number Types
      \hex{7C} &\Rightarrow& \F64 \\
    \end{array}
 
+
 .. index:: reference type
    pair: binary format; reference type
 .. _binary-reftype:
@@ -41,7 +42,7 @@ Reference Types
    \begin{array}{llclll@{\qquad\qquad}l}
    \production{reference type} & \Breftype &::=&
      \hex{70} &\Rightarrow& \FUNCREF \\ &&|&
-     \hex{6F} &\Rightarrow& \ANYREF \\
+     \hex{6F} &\Rightarrow& \EXTERNREF \\
    \end{array}
 
 
@@ -60,6 +61,11 @@ Value Types
      t{:}\Bnumtype &\Rightarrow& t \\ &&|&
      t{:}\Breftype &\Rightarrow& t \\
    \end{array}
+
+.. note::
+   Value types can occur in contexts where :ref:`type indices <syntax-typeidx>` are also allowed, such as in the case of :ref:`block types <binary-blocktype>`.
+   Thus, the binary format for types corresponds to the |SignedLEB128|_ :ref:`encoding <binary-sint>` of small negative :math:`\sN` values, so that they can coexist with (positive) type indices in the future.
+
 
 .. index:: result type, value type
    pair: binary format; result type

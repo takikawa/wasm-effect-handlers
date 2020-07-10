@@ -93,18 +93,38 @@
 )
 
 
-(module $Mref-ex
-  (global (export "g-const") funcref (ref.null))
-  (global (export "g-var") (mut funcref) (ref.null))
+(module $Mref_ex
+  (global (export "g-const-func") funcref (ref.null func))
+  (global (export "g-var-func") (mut funcref) (ref.null func))
+  (global (export "g-const-extern") externref (ref.null extern))
+  (global (export "g-var-extern") (mut externref) (ref.null extern))
 )
-(register "Mref-ex" $Mref-ex)
+(register "Mref_ex" $Mref_ex)
 
-(module $Mref-im
-  (global (import "Mref-ex" "g-const") anyref)
+(module $Mref_im
+  (global (import "Mref_ex" "g-const-func") funcref)
+  (global (import "Mref_ex" "g-const-extern") externref)
+
+  (global (import "Mref_ex" "g-var-func") (mut funcref))
+  (global (import "Mref_ex" "g-var-extern") (mut externref))
 )
 
 (assert_unlinkable
-  (module (global (import "Mref-ex" "g-var") (mut anyref)))
+  (module (global (import "Mref_ex" "g-const-extern") funcref))
+  "incompatible import type"
+)
+(assert_unlinkable
+  (module (global (import "Mref_ex" "g-const-func") externref))
+  "incompatible import type"
+)
+
+
+(assert_unlinkable
+  (module (global (import "Mref_ex" "g-var-func") (mut externref)))
+  "incompatible import type"
+)
+(assert_unlinkable
+  (module (global (import "Mref_ex" "g-var-extern") (mut funcref)))
   "incompatible import type"
 )
 
@@ -220,13 +240,13 @@
 )
 (assert_return (get $G2 "g") (i32.const 5))
 
-(assert_unlinkable
+(assert_trap
   (module
     (table (import "Mt" "tab") 0 funcref)
     (elem (i32.const 10) $f)
     (func $f)
   )
-  "elements segment does not fit"
+  "out of bounds"
 )
 
 (assert_unlinkable
@@ -241,28 +261,52 @@
 )
 (assert_trap (invoke $Mt "call" (i32.const 7)) "uninitialized")
 
-(assert_unlinkable
+;; Unlike in the v1 spec, active element segments stored before an
+;; out-of-bounds access persist after the instantiation failure.
+(assert_trap
   (module
     (table (import "Mt" "tab") 10 funcref)
     (func $f (result i32) (i32.const 0))
     (elem (i32.const 7) $f)
-    (elem (i32.const 12) $f)  ;; out of bounds
+    (elem (i32.const 8) $f $f $f $f $f)  ;; (partially) out of bounds
   )
-  "elements segment does not fit"
+  "out of bounds"
 )
-(assert_trap (invoke $Mt "call" (i32.const 7)) "uninitialized")
+(assert_return (invoke $Mt "call" (i32.const 7)) (i32.const 0))
+(assert_trap (invoke $Mt "call" (i32.const 8)) "uninitialized")
 
-(assert_unlinkable
+(assert_trap
   (module
     (table (import "Mt" "tab") 10 funcref)
     (func $f (result i32) (i32.const 0))
     (elem (i32.const 7) $f)
     (memory 1)
-    (data (i32.const 0x10000) "d") ;; out of bounds
+    (data (i32.const 0x10000) "d")  ;; out of bounds
   )
-  "data segment does not fit"
+  "out of bounds"
 )
-(assert_trap (invoke $Mt "call" (i32.const 7)) "uninitialized")
+(assert_return (invoke $Mt "call" (i32.const 7)) (i32.const 0))
+
+
+(module $Mtable_ex
+  (table $t1 (export "t-func") 1 funcref)
+  (table $t2 (export "t-extern") 1 externref)
+)
+(register "Mtable_ex" $Mtable_ex)
+
+(module
+  (table (import "Mtable_ex" "t-func") 1 funcref)
+  (table (import "Mtable_ex" "t-extern") 1 externref)
+)
+
+(assert_unlinkable
+  (module (table (import "Mtable_ex" "t-func") 1 externref))
+  "incompatible import type"
+)
+(assert_unlinkable
+  (module (table (import "Mtable_ex" "t-extern") 1 funcref))
+  "incompatible import type"
+)
 
 
 ;; Memories
@@ -312,12 +356,12 @@
   (data (i32.const 0xffff) "a")
 )
 
-(assert_unlinkable
+(assert_trap
   (module
     (memory (import "Mm" "mem") 0)
     (data (i32.const 0x10000) "a")
   )
-  "data segment does not fit"
+  "out of bounds"
 )
 
 (module $Pm
@@ -348,24 +392,62 @@
 )
 (assert_return (invoke $Mm "load" (i32.const 0)) (i32.const 0))
 
-(assert_unlinkable
+;; Unlike in v1 spec, active data segments written before an
+;; out-of-bounds access persist after the instantiation failure.
+(assert_trap
   (module
+    ;; Note: the memory is 5 pages large by the time we get here.
     (memory (import "Mm" "mem") 1)
     (data (i32.const 0) "abc")
-    (data (i32.const 0x50000) "d") ;; out of bounds
+    (data (i32.const 327670) "zzzzzzzzzzzzzzzzzz") ;; (partially) out of bounds
   )
-  "data segment does not fit"
+  "out of bounds"
 )
-(assert_return (invoke $Mm "load" (i32.const 0)) (i32.const 0))
+(assert_return (invoke $Mm "load" (i32.const 0)) (i32.const 97))
+(assert_return (invoke $Mm "load" (i32.const 327670)) (i32.const 0))
 
-(assert_unlinkable
+(assert_trap
   (module
     (memory (import "Mm" "mem") 1)
     (data (i32.const 0) "abc")
     (table 0 funcref)
     (func)
-    (elem (i32.const 0) 0) ;; out of bounds
+    (elem (i32.const 0) 0)  ;; out of bounds
   )
-  "elements segment does not fit"
+  "out of bounds"
 )
-(assert_return (invoke $Mm "load" (i32.const 0)) (i32.const 0))
+(assert_return (invoke $Mm "load" (i32.const 0)) (i32.const 97))
+
+;; Store is modified if the start function traps.
+(module $Ms
+  (type $t (func (result i32)))
+  (memory (export "memory") 1)
+  (table (export "table") 1 funcref)
+  (func (export "get memory[0]") (type $t)
+    (i32.load8_u (i32.const 0))
+  )
+  (func (export "get table[0]") (type $t)
+    (call_indirect (type $t) (i32.const 0))
+  )
+)
+(register "Ms" $Ms)
+
+(assert_trap
+  (module
+    (import "Ms" "memory" (memory 1))
+    (import "Ms" "table" (table 1 funcref))
+    (data (i32.const 0) "hello")
+    (elem (i32.const 0) $f)
+    (func $f (result i32)
+      (i32.const 0xdead)
+    )
+    (func $main
+      (unreachable)
+    )
+    (start $main)
+  )
+  "unreachable"
+)
+
+(assert_return (invoke $Ms "get memory[0]") (i32.const 104))  ;; 'h'
+(assert_return (invoke $Ms "get table[0]") (i32.const 0xdead))

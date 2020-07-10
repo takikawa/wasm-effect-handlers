@@ -54,26 +54,18 @@ Reference Types
 .. math::
    \begin{array}{llll}
    \production{reference type} & \reftype &::=&
-     \ANYREF ~|~ \FUNCREF ~|~ \NULLREF \\
+     \FUNCREF ~|~ \EXTERNREF \\
    \end{array}
-
-The type |ANYREF| denotes the infinite union of all references, and thereby a :ref:`supertype <match-reftype>` of all other reference types.
 
 The type |FUNCREF| denotes the infinite union of all references to :ref:`functions <syntax-func>`, regardless of their :ref:`function types <syntax-functype>`.
 
-The type |NULLREF| only contains a single value: the :ref:`null <syntax-ref.null>` reference.
-It is a :ref:`subtype <match-reftype>` of all other reference types.
-By virtue of not being representable in either the :ref:`binary format <binary-reftype>` nor the :ref:`text format <text-reftype>`, the |NULLREF| type cannot be used in a program;
-it only occurs during :ref:`validation <valid>`.
-
-.. note::
-   Future versions of WebAssembly may include reference types that do not include null and hence are not supertypes of |NULLREF|.
+The type |EXTERNREF| denotes the infinite union of all references to objects owned by the :ref:`embedder <embedder>` and that can be passed into WebAssembly under this type.
 
 Reference types are *opaque*, meaning that neither their size nor their bit pattern can be observed.
 Values of reference type can be stored in :ref:`tables <syntax-table>`.
 
 
-.. index:: ! value type, number type, reference type
+.. index:: ! value type, number type, reference type, ! bottom type
    pair: abstract syntax; value type
    pair: value; type
 .. _syntax-valtype:
@@ -82,6 +74,7 @@ Value Types
 ~~~~~~~~~~~
 
 *Value types* classify the individual values that WebAssembly code can compute with and the values that a variable accepts.
+They are either :ref:`number types <syntax-numtype>` or :ref:`reference types <syntax-reftype>`.
 
 .. math::
    \begin{array}{llll}
@@ -95,7 +88,7 @@ Conventions
 * The meta variable :math:`t` ranges over value types or subclasses thereof where clear from context.
 
 
-.. index:: ! result type, value type, instruction, execution, block
+.. index:: ! result type, value type, instruction, execution, function
    pair: abstract syntax; result type
    pair: result; type
 .. _syntax-resulttype:
