@@ -497,10 +497,6 @@ let check_type (t : type_) =
   check_func_type t.it t.at
 
 
-let check_type (t : type_) =
-  check_func_type t.it t.at
-
-
 (* Functions & Constants *)
 
 (*

@@ -53,6 +53,8 @@ let memories =
   Lib.List.map_filter (function ExternMemoryType t -> Some t | _ -> None)
 let globals =
   Lib.List.map_filter (function ExternGlobalType t -> Some t | _ -> None)
+let exceptions =
+  Lib.List.map_filter (function ExternExceptionType t -> Some t | _ -> None)
 
 
 (* Subtyping *)
@@ -105,7 +107,7 @@ let string_of_ref_type = function
 let string_of_refed_type = function
   | FuncRefType -> "func"
   | ExternRefType -> "extern"
-  | ExternRefType -> "exn"
+  | ExnRefType -> "exn"
 
 let string_of_value_type = function
   | NumType t -> string_of_num_type t

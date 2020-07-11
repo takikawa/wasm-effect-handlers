@@ -111,7 +111,7 @@ let func_type_of = function
 let _exception_ref inst x i at =
   match any_ref inst x i at with
   | ExnRef exn -> exn
-  | NullRef -> Trap.error at ("uninitialized element " ^ Int32.to_string i)
+  | (NullRef _) -> Trap.error at ("uninitialized element " ^ Int32.to_string i)
   | _ -> Crash.error at ("type mismatch for element " ^ Int32.to_string i)
 
 let block_type inst bt =
@@ -201,7 +201,7 @@ let rec step (c : config) : config =
         else
           vs', [Plain (Br (Lib.List32.nth xs i)) @@ e.at]
 
-      | BrOnExn (l, x), Ref NullRef :: vs' ->
+      | BrOnExn (l, x), Ref (NullRef _) :: vs' ->
         vs', [Trapping "cannot use null exnref" @@ e.at]
 
       | BrOnExn (l, x), Ref (ExnRef (exn, vs0)) :: vs' when exn == exception_ frame.inst x ->
@@ -495,7 +495,7 @@ let rec step (c : config) : config =
         let args, vs' = take n vs e.at, drop n vs e.at in
         vs', [Throwing (exn, args) @@ e.at]
 
-      | Rethrow, Ref NullRef :: vs ->
+      | Rethrow, Ref (NullRef _) :: vs ->
         vs, [Trapping "cannot use null exnref" @@ e.at]
 
       | Rethrow, Ref (ExnRef ep) :: vs ->

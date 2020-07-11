@@ -9,6 +9,7 @@ type t =
   funcs : Set.t;
   elems : Set.t;
   datas : Set.t;
+  exceptions : Set.t;
   locals : Set.t;
   labels : Set.t;
 }
@@ -27,6 +28,7 @@ val table : Ast.table -> t
 val memory : Ast.memory -> t
 val elem : Ast.elem_segment -> t
 val data : Ast.data_segment -> t
+val exception_ : Ast.exception_ -> t
 val export : Ast.export -> t
 val import : Ast.import -> t
 val start : Ast.var option -> t

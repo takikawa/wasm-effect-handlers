@@ -324,6 +324,11 @@ let memory off i mem =
   let {mtype = MemoryType lim} = mem.it in
   Node ("memory $" ^ nat (off + i) ^ " " ^ limits nat32 lim, [])
 
+let exception_ off i ex =
+  let {xtypevar = x; _} = ex.it in
+  Node ("exception $" ^ nat (off + i),
+        [Node ("type " ^ var x, [])])
+
 let is_elem_kind = function
   | FuncRefType -> true
   | _ -> false
@@ -387,7 +392,7 @@ let import_desc fx tx mx gx ex d =
 let import fx tx mx gx ex im =
   let {module_name; item_name; idesc} = im.it in
   Node ("import",
-    [atom name module_name; atom name item_name; import_desc fx tx mx gx idesc]
+    [atom name module_name; atom name item_name; import_desc fx tx mx gx ex idesc]
   )
 
 let export_desc d =

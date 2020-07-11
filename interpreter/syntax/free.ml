@@ -12,6 +12,7 @@ type t =
   funcs : Set.t;
   elems : Set.t;
   datas : Set.t;
+  exceptions : Set.t;
   locals : Set.t;
   labels : Set.t;
 }
@@ -25,6 +26,7 @@ let empty : t =
   funcs = Set.empty;
   elems = Set.empty;
   datas = Set.empty;
+  exceptions = Set.empty;
   locals = Set.empty;
   labels = Set.empty;
 }
@@ -38,6 +40,7 @@ let union (s1 : t) (s2 : t) : t =
   funcs = Set.union s1.funcs s2.funcs;
   elems = Set.union s1.elems s2.elems;
   datas = Set.union s1.datas s2.datas;
+  exceptions = Set.union s1.exceptions s2.exceptions;
   locals = Set.union s1.locals s2.locals;
   labels = Set.union s1.labels s2.labels;
 }
@@ -49,6 +52,7 @@ let memories s = {empty with memories = s}
 let funcs s = {empty with funcs = s}
 let elems s = {empty with elems = s}
 let datas s = {empty with datas = s}
+let exceptions s = {empty with exceptions = s}
 let locals s = {empty with locals = s}
 let labels s = {empty with labels = s}
 
@@ -69,6 +73,7 @@ let rec instr (e : instr) =
   | If (_, es1, es2) -> block es1 ++ block es2
   | Br x | BrIf x -> labels (var x)
   | BrTable (xs, x) -> list (fun x -> labels (var x)) (x::xs)
+  | BrOnExn (x, y) -> labels (var x) ++ exceptions (var y)
   | Return -> empty
   | Call x -> funcs (var x)
   | CallIndirect (x, y) -> tables (var x) ++ types (var y)
@@ -83,6 +88,9 @@ let rec instr (e : instr) =
     memories zero
   | MemoryInit x -> memories zero ++ datas (var x)
   | DataDrop x -> datas (var x)
+  | Throw x -> exceptions (var x)
+  | Rethrow -> empty
+  | Try (_, es1, es2) -> block es1 ++ block es2
 
 and block (es : instr list) =
   let free = list instr es in {free with labels = shift free.labels}
@@ -93,6 +101,7 @@ let global (g : global) = const g.it.ginit
 let func (f : func) = {(block f.it.body) with locals = Set.empty}
 let table (t : table) = empty
 let memory (m : memory) = empty
+let exception_ (e : exception_) = empty
 
 let segment_mode f (m : segment_mode) =
   match m.it with
@@ -113,6 +122,7 @@ let export_desc (d : export_desc) =
   | TableExport x -> tables (var x)
   | MemoryExport x -> memories (var x)
   | GlobalExport x -> globals (var x)
+  | ExceptionExport x -> exceptions (var x)
 
 let import_desc (d : import_desc) =
   match d.it with
@@ -120,6 +130,7 @@ let import_desc (d : import_desc) =
   | TableImport tt -> empty
   | MemoryImport mt -> empty
   | GlobalImport gt -> empty
+  | ExceptionImport (x, et) -> types (var x)
 
 let export (e : export) = export_desc e.it.edesc
 let import (i : import) = import_desc i.it.idesc

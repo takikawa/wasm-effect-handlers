@@ -813,7 +813,7 @@ let module_ s =
       func_types func_bodies
   in
   let exceptions = [] in (* TODO FIXME. *)
-  {types; tables; memories; globals; funcs; exceptions; imports; exports; elems; data; start}
+  {types; tables; memories; globals; funcs; exceptions; imports; exports; elems; datas; start}
 
 
 let decode name bs = at module_ (stream name bs)

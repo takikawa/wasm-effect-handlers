@@ -562,7 +562,6 @@ select_expr_results :
     { fun c -> let _, ts, es = $5 c in true, $3 @ ts, es }
   | expr_list
     { fun c -> false, [], $1 c }
->>>>>>> upstream-ref/master
 
 call_expr_type :
   | type_use call_expr_params

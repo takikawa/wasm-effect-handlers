@@ -323,6 +323,7 @@ let assert_return ress ts at =
         match t with
         | FuncRefType -> is_funcref_idx
         | ExternRefType -> is_externref_idx
+        | ExnRefType -> assert false (* FIXME *)
       in
       [ Call (is_ref_idx @@ at) @@ at;
         Test (Values.I32 I32Op.Eqz) @@ at;
