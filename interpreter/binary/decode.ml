@@ -146,6 +146,7 @@ let ref_type s =
   match vs7 s with
   | -0x10 -> FuncRefType
   | -0x11 -> ExternRefType
+  | -0x18 -> ExnRefType
   | _ -> error s (pos s - 1) "malformed reference type"
 
 let value_type s =
@@ -176,6 +177,11 @@ let table_type s =
 let memory_type s =
   let lim = limits vu32 s in
   MemoryType lim
+
+let exception_type s =
+  let _ = vu32 s in
+  let typeidx = at vu32 s in
+  ExceptionType typeidx
 
 let mutability s =
   match u8 s with
@@ -242,7 +248,22 @@ let rec instr s =
     end
 
   | 0x05 -> error s pos "misplaced ELSE opcode"
-  | 0x06| 0x07 | 0x08 | 0x09 | 0x0a as b -> illegal s pos b
+
+  | 0x06 ->
+    let bt = block_type s in
+    let es1 = instr_block s in
+    expect 0x07 s "CATCH opcode expected";
+    let es2 = instr_block s in
+    end_ s;
+    try_ bt es1 es2
+  | 0x07 -> error s pos "misplaced CATCH opcode"
+  | 0x08 -> throw (at var s)
+  | 0x09 -> rethrow
+  | 0x0a ->
+    let l = at var s in
+    let x = at var s in
+    br_on_exn l x
+
   | 0x0b -> error s pos "misplaced END opcode"
 
   | 0x0c -> br (at var s)
@@ -495,7 +516,7 @@ let rec instr s =
 and instr_block s = List.rev (instr_block' s [])
 and instr_block' s es =
   match peek s with
-  | None | Some (0x05 | 0x0b) -> es
+  | None | Some (0x05 | 0x07 | 0x0b) -> es
   | _ ->
     let pos = pos s in
     let e' = instr s in
@@ -526,6 +547,7 @@ let id s =
     | 10 -> `CodeSection
     | 11 -> `DataSection
     | 12 -> `DataCountSection
+    | 13 -> `EventSection
     | _ -> error s (pos s) "malformed section id"
     ) bo
 
@@ -554,6 +576,7 @@ let import_desc s =
   | 0x01 -> TableImport (table_type s)
   | 0x02 -> MemoryImport (memory_type s)
   | 0x03 -> GlobalImport (global_type s)
+  | 0x04 -> ExceptionImport (at var s)
   | _ -> error s (pos s - 1) "malformed import kind"
 
 let import s =
@@ -592,6 +615,16 @@ let memory_section s =
   section `MemorySection (vec (at memory)) [] s
 
 
+(* Exception section *)
+
+let exception_ s =
+  let xtype = exception_type s in
+  {xtype}
+
+let exception_section s =
+  section `EventSection (vec (at exception_)) [] s
+
+
 (* Global section *)
 
 let global s =
@@ -611,6 +644,7 @@ let export_desc s =
   | 0x01 -> TableExport (at var s)
   | 0x02 -> MemoryExport (at var s)
   | 0x03 -> GlobalExport (at var s)
+  | 0x04 -> ExceptionExport (at var s)
   | _ -> error s (pos s - 1) "malformed export kind"
 
 let export s =
@@ -786,6 +820,8 @@ let module_ s =
   iterate custom_section s;
   let memories = memory_section s in
   iterate custom_section s;
+  let exceptions = exception_section s in
+  iterate custom_section s;
   let globals = global_section s in
   iterate custom_section s;
   let exports = export_section s in
@@ -812,7 +848,6 @@ let module_ s =
     List.map2 Source.(fun t f -> {f.it with ftype = t} @@ f.at)
       func_types func_bodies
   in
-  let exceptions = [] in (* TODO FIXME. *)
   {types; tables; memories; globals; funcs; exceptions; imports; exports; elems; datas; start}
 
 
