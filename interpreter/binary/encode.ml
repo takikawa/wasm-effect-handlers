@@ -127,11 +127,11 @@ let encode m =
     let global_type = function
       | GlobalType (t, mut) -> value_type t; mutability mut
 
-    let exception_attribute =
+    let exception_attribute () =
       vu32 (Int32.of_int 0)
 
-    let exception_type x =
-      exception_attribute; vu32 x.it
+    let exception_type = function
+      | ExceptionType idx -> exception_attribute (); vu32 idx.it
 
     (* Expressions *)
 
@@ -440,8 +440,7 @@ let encode m =
       | TableImport t -> u8 0x01; table_type t
       | MemoryImport t -> u8 0x02; memory_type t
       | GlobalImport t -> u8 0x03; global_type t
-      | ExceptionImport (x, t) ->
-        u8 0x04; exception_attribute; var x
+      | ExceptionImport x -> u8 0x04; exception_attribute (); var x
 
     let import im =
       let {module_name; item_name; idesc} = im.it in
@@ -472,12 +471,12 @@ let encode m =
     let memory_section mems =
       section 5 (vec memory) mems (mems <> [])
 
-    (* Event section *)
+    (* Exception section *)
     let exception_ exn =
-      let {xtypevar = evar; _} = exn.it in
-      exception_type evar
+      let {xtype} = exn.it in
+      exception_type xtype
 
-    let event_section exns =
+    let exception_section exns =
       section 13 (vec exception_) exns (exns <> [])
 
     (* Global section *)
@@ -604,7 +603,7 @@ let encode m =
       func_section m.it.funcs;
       table_section m.it.tables;
       memory_section m.it.memories;
-      event_section m.it.exceptions;
+      exception_section m.it.exceptions;
       global_section m.it.globals;
       export_section m.it.exports;
       start_section m.it.start;
