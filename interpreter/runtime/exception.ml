@@ -1,7 +1,7 @@
 open Types
 open Values
 
-type t = Exception of exn * exception_type
+type t = Exception of exn * func_type
 type package = t * value list
 
 let alloc xt =

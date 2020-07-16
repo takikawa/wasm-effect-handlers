@@ -1,3 +1,5 @@
+open Source
+
 (* Types *)
 
 type num_type = I32Type | I64Type | F32Type | F64Type
@@ -5,7 +7,7 @@ type ref_type = FuncRefType | ExternRefType | ExnRefType
 type value_type = NumType of num_type | RefType of ref_type
 type stack_type = value_type list
 type func_type = FuncType of stack_type * stack_type
-type exception_type = ExceptionType of stack_type * stack_type
+type exception_type = ExceptionType of int32 Source.phrase
 
 type 'a limits = {min : 'a; max : 'a option}
 type mutability = Immutable | Mutable
@@ -17,7 +19,7 @@ type extern_type =
   | ExternTableType of table_type
   | ExternMemoryType of memory_type
   | ExternGlobalType of global_type
-  | ExternExceptionType of exception_type
+  | ExternExceptionType of func_type
 
 type pack_size = Pack8 | Pack16 | Pack32
 type extension = SX | ZX
@@ -138,12 +140,12 @@ let string_of_stack_type ts =
 let string_of_func_type (FuncType (ins, out)) =
   string_of_stack_type ins ^ " -> " ^ string_of_stack_type out
 
-let string_of_exception_type (ExceptionType (ins, out)) =
-  string_of_stack_type ins ^ " -> " ^ string_of_stack_type out
+let string_of_exception_type (ExceptionType idx) =
+  Int32.to_string idx.it
 
 let string_of_extern_type = function
   | ExternFuncType ft -> "func " ^ string_of_func_type ft
   | ExternTableType tt -> "table " ^ string_of_table_type tt
   | ExternMemoryType mt -> "memory " ^ string_of_memory_type mt
   | ExternGlobalType gt -> "global " ^ string_of_global_type gt
-  | ExternExceptionType et -> "exception " ^ string_of_exception_type et
+  | ExternExceptionType et -> "exception " ^ string_of_func_type et

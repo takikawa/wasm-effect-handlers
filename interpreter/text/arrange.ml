@@ -325,7 +325,8 @@ let memory off i mem =
   Node ("memory $" ^ nat (off + i) ^ " " ^ limits nat32 lim, [])
 
 let exception_ off i ex =
-  let {xtypevar = x; _} = ex.it in
+  let {xtype} = ex.it in
+  let ExceptionType x = xtype in
   Node ("exception $" ^ nat (off + i),
         [Node ("type " ^ var x, [])])
 
@@ -385,7 +386,7 @@ let import_desc fx tx mx gx ex d =
     incr mx; memory 0 (!mx - 1) ({mtype = t} @@ d.at)
   | GlobalImport t ->
     incr gx; Node ("global $" ^ nat (!gx - 1), [global_type t])
-  | ExceptionImport (x, _) -> 
+  | ExceptionImport x ->
     incr ex; Node ("exception $" ^ nat (!ex - 1),
                    [Node ("type", [atom var x])])
 

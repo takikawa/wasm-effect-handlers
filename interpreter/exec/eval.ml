@@ -490,7 +490,7 @@ let rec step (c : config) : config =
 
       | Throw x, vs ->
         let exn = exception_ frame.inst x in
-        let ExceptionType (ts, _) = Exception.type_of exn in
+        let FuncType (ts, _) = Exception.type_of exn in
         let n = Lib.List32.length ts in
         let args, vs' = take n vs e.at, drop n vs e.at in
         vs', [Throwing (exn, args) @@ e.at]
@@ -639,8 +639,10 @@ let create_global (inst : module_inst) (glob : global) : global_inst =
   Global.alloc gtype v
 
 let create_exception (inst : module_inst) (exn : exception_) : exception_inst =
-  let {xtype; _} = exn.it in
-  Exception.alloc xtype
+  let {xtype} = exn.it in
+  let ExceptionType idx = xtype in
+  let ftype = type_ inst idx in
+  Exception.alloc ftype
 
 let create_export (inst : module_inst) (ex : export) : export_inst =
   let {name; edesc} = ex.it in

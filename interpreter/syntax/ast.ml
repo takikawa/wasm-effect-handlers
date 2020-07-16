@@ -179,9 +179,7 @@ and data_segment' =
 type exception_ = exception_' Source.phrase
 and exception_' =
 {
-  xvar : var;
   xtype : exception_type;
-  xtypevar : var;
 }
 
 (* Modules *)
@@ -209,7 +207,7 @@ and import_desc' =
   | TableImport of table_type
   | MemoryImport of memory_type
   | GlobalImport of global_type
-  | ExceptionImport of var * exception_type
+  | ExceptionImport of var
 
 type import = import' Source.phrase
 and import' =
@@ -258,8 +256,9 @@ open Source
 let func_type_for (m : module_) (x : var) : func_type =
   (Lib.List32.nth m.it.types x.it).it
 
-let exception_type_for (m : module_) (x : var) : exception_type =
-  (Lib.List32.nth m.it.exceptions x.it).it.xtype
+let exception_type_for (m : module_) (et : exception_type) : func_type =
+  let ExceptionType idx = et in
+  (Lib.List32.nth m.it.types idx.it).it
 
 let import_type (m : module_) (im : import) : extern_type =
   let {idesc; _} = im.it in
@@ -268,7 +267,7 @@ let import_type (m : module_) (im : import) : extern_type =
   | TableImport t -> ExternTableType t
   | MemoryImport t -> ExternMemoryType t
   | GlobalImport t -> ExternGlobalType t
-  | ExceptionImport (x, t) -> ExternExceptionType t
+  | ExceptionImport x -> ExternExceptionType (func_type_for m x)
 
 let export_type (m : module_) (ex : export) : extern_type =
   let {edesc; _} = ex.it in
@@ -289,7 +288,8 @@ let export_type (m : module_) (ex : export) : extern_type =
     let gts = globals its @ List.map (fun g -> g.it.gtype) m.it.globals in
     ExternGlobalType (nth gts x.it)
   | ExceptionExport x ->
-    let ets = exceptions its @ List.map (fun e -> e.it.xtype) m.it.exceptions in
+    let f = fun e -> exception_type_for m e.it.xtype in
+    let ets = exceptions its @ List.map f m.it.exceptions in
     ExternExceptionType (nth ets x.it)
 
 let string_of_name n =

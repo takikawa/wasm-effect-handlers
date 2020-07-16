@@ -130,7 +130,7 @@ let import_desc (d : import_desc) =
   | TableImport tt -> empty
   | MemoryImport mt -> empty
   | GlobalImport gt -> empty
-  | ExceptionImport (x, et) -> types (var x)
+  | ExceptionImport x -> types (var x)
 
 let export (e : export) = export_desc e.it.edesc
 let import (i : import) = import_desc i.it.idesc

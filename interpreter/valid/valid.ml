@@ -26,7 +26,7 @@ type context =
   locals : value_type list;
   results : value_type list;
   labels : stack_type list;
-  exceptions : exception_type list;
+  exceptions : func_type list;
   refs : Free.t;
 }
 
@@ -413,7 +413,7 @@ let rec check_instr (c : context) (e : instr) (s : infer_stack_type) : op_type =
     ts1 --> ts2
 
   | Throw x ->
-    let ExceptionType (ts1, _) = exception_ c x in
+    let FuncType (ts1, _) = exception_ c x in
     ts1 -->... []
 
   | Rethrow ->
@@ -421,7 +421,7 @@ let rec check_instr (c : context) (e : instr) (s : infer_stack_type) : op_type =
     ts1 -->... []
 
   | BrOnExn (l, x) ->
-    let ExceptionType (ts1, ts2) = exception_ c x in
+    let FuncType (ts1, ts2) = exception_ c x in
     check_stack (known ts1) (known (label c l)) e.at;
     [RefType ExnRefType] --> [RefType ExnRefType]
 
@@ -487,8 +487,8 @@ let check_global_type (gt : global_type) at =
   let GlobalType (t, mut) = gt in
   check_value_type t at
 
-let check_exception_type (xt : exception_type) at =
-  let ExceptionType (ins, out) = xt in
+let check_exception_type (xt : func_type) at =
+  let FuncType (ins, out) = xt in
   List.iter (fun t -> check_value_type t at) ins;
   require (out = []) at
     ("type mismatch: exception must have return type " ^ string_of_stack_type [])
@@ -576,9 +576,9 @@ let check_global (c : context) (glob : global) =
   check_const c ginit t
 
 let check_exception (c : context) (exn : exception_) =
-  let {xtype; xvar; _} = exn.it in
-  ignore (exception_ c xvar);
-  check_exception_type xtype exn.at
+  let {xtype} = exn.it in
+  let ExceptionType x = xtype in
+  check_exception_type (type_ c x) exn.at
 
 (* Modules *)
 
@@ -602,9 +602,10 @@ let check_import (im : import) (c : context) : context =
   | GlobalImport gt ->
     check_global_type gt idesc.at;
     {c with globals = gt :: c.globals}
-  | ExceptionImport (x, et) ->
-    check_exception_type et idesc.at;
-    {c with exceptions = et :: c.exceptions}
+  | ExceptionImport x ->
+    let ftype = type_ c x in
+    check_exception_type ftype idesc.at;
+    {c with exceptions = ftype :: c.exceptions}
 
 module NameSet = Set.Make(struct type t = Ast.name let compare = compare end)
 
@@ -632,12 +633,13 @@ let check_module (m : module_) =
         types = List.map (fun ty -> ty.it) types;
       }
   in
+  let get_exn_type = fun {it = {xtype = ExceptionType x}; _} -> type_ c0 x in
   let c1 =
     { c0 with
       funcs = c0.funcs @ List.map (fun f -> type_ c0 f.it.ftype) funcs;
       tables = c0.tables @ List.map (fun tab -> tab.it.ttype) tables;
       memories = c0.memories @ List.map (fun mem -> mem.it.mtype) memories;
-      exceptions = c0.exceptions @ List.map (fun exn -> exn.it.xtype) exceptions;
+      exceptions = c0.exceptions @ List.map get_exn_type exceptions;
       elems = List.map (fun elem -> elem.it.etype) elems;
       datas = List.map (fun _data -> ()) datas;
     }
