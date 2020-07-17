@@ -5,12 +5,12 @@
   (type (func (param i32)))
   (type (func (param i32 i32)))
 
-  (exception (type 0))
+  (exception $exn (type 0))
   (exception $exn-i32 (type 1))
   (exception $exn-i32-i32 (type 2))
 
   (func $throw-i32 (param i32) (result i32)
-    (throw 1 (local.get 0)))
+    (throw $exn-i32 (local.get 0)))
   (func $call-throw-i32 (param i32) (result i32)
     (call $throw-i32 (local.get 0)))
   (func $call-call-throw-i32 (param i32) (result i32)
@@ -40,7 +40,7 @@
 
   (func (export "throw-simple") (result i32)
     (try (result i32)
-      (do (throw 1 (i32.const 42)))
+      (do (throw $exn-i32 (i32.const 42)))
       (catch
         drop
         (i32.const 1)))
@@ -69,7 +69,7 @@
         drop
         (local.set 0 (i32.const 99))))
     (try
-      (do (throw 0))
+      (do (throw $exn))
       (catch
         drop
         (local.set 0 (i32.const 42))))
@@ -81,7 +81,7 @@
         (try
           (do
             (try
-              (do (throw 0))
+              (do (throw $exn))
               (catch
                 drop
                 (local.set 0 (i32.const 42)))))
@@ -98,7 +98,7 @@
       (do
         (i32.const 2)
         (br 0)
-        (throw 0))
+        (throw $exn))
       (catch
         drop
         (i32.const 1)))
@@ -116,7 +116,7 @@
   (func (export "try-with-params-2") (result i32)
     (i32.const 42)
     (try (param i32) (result i32)
-      (do (throw 1))
+      (do (throw $exn-i32))
       (catch
         (br_on_exn 0 $exn-i32)
         drop

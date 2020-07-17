@@ -8,7 +8,7 @@
     (try (result i32)
       (do
         (try
-          (do (throw 0))
+          (do (throw $exn))
           (catch rethrow))
         (i32.const 1))
       (catch

@@ -21,7 +21,7 @@
     (try (result i32)
       (do
         (i32.const 42)
-        (throw 0))
+        (throw $exn-i32))
       (catch
         (br_on_exn 0 $exn-i32)
         drop
@@ -32,7 +32,7 @@
     (try (result i32)
       (do
         (i32.const 42)
-        (throw 1))
+        (throw $exn-i32-2))
       (catch
         (br_on_exn 0 $exn-i32)
         drop
@@ -62,7 +62,7 @@
     (local.get 1)
     (local.get 2)
     (local.get 3)
-    (throw 2))
+    (throw $exn-all))
   (func (export "extract-multiple-params-call") (result i32)
     (try (result i32 i64 f32 f64)
       (do
@@ -85,7 +85,7 @@
     (try (result i32)
       (do
         (i32.const 42)
-        (throw 1))
+        (throw $exn-i32-2))
       (catch
         (block (param exnref) (result i32)
           (br_on_exn 0 $exn-i32)
