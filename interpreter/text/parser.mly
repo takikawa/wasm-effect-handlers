@@ -399,7 +399,7 @@ plain_instr :
   | UNARY { fun c -> $1 }
   | BINARY { fun c -> $1 }
   | CONVERT { fun c -> $1 }
-  | THROW var { fun c -> throw ($2 c func) }
+  | THROW var { fun c -> throw ($2 c exception_) }
   | RETHROW { fun c -> rethrow }
 
 
